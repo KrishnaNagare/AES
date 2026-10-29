@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AES Modes of Operation — Performance & Security Analysis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ─── Hero ─── -->
+<header class="hero">
+    <div class="hero-bg"></div>
+    <div class="container">
+        <p class="hero-label">Cryptography Research</p>
+        <h1>Comparative Performance &amp; Security Analysis of <span class="gradient-text">AES Modes of Operation</span></h1>
+        <p class="hero-sub">An in-depth look at ECB, CBC, CFB, OFB, CTR, and GCM — how they work, where they excel, and where they fall short.</p>
+        <nav class="hero-nav">
+            <a href="#overview">Overview</a>
+            <a href="#modes">Modes</a>
+            <a href="#comparison">Comparison</a>
+            <a href="#performance">Performance</a>
+            <a href="#security">Security</a>
+            <a href="#recommendations">Recommendations</a>
+            <a href="#demo" class="nav-demo">🔐 Live Demo</a>
+        </nav>
+    </div>
+</header>
+
+<!-- ─── Overview ─── -->
+<section id="overview" class="section">
+    <div class="container">
+        <h2 class="section-title">What Are AES Modes of Operation?</h2>
+        <div class="overview-grid">
+            <div class="overview-text">
+                <p>The <strong>Advanced Encryption Standard (AES)</strong> is a symmetric-key block cipher that processes data in fixed 128-bit blocks. A <em>mode of operation</em> defines how AES is applied repeatedly to encrypt data longer than one block.</p>
+                <p>Choosing the right mode is critical — it affects <strong>confidentiality</strong>, <strong>integrity</strong>, <strong>parallelism</strong>, <strong>error propagation</strong>, and <strong>throughput</strong>. This analysis compares the six most widely-used modes.</p>
+            </div>
+            <div class="overview-card">
+                <h3>AES at a Glance</h3>
+                <ul class="stat-list">
+                    <li><span class="stat-label">Block Size</span><span class="stat-value">128 bits</span></li>
+                    <li><span class="stat-label">Key Sizes</span><span class="stat-value">128 / 192 / 256 bits</span></li>
+                    <li><span class="stat-label">Standard</span><span class="stat-value">NIST FIPS 197</span></li>
+                    <li><span class="stat-label">Rounds</span><span class="stat-value">10 / 12 / 14</span></li>
+                    <li><span class="stat-label">Structure</span><span class="stat-value">Substitution-Permutation</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ─── Modes Deep Dive ─── -->
+<section id="modes" class="section section-alt">
+    <div class="container">
+        <h2 class="section-title">Modes of Operation</h2>
+        <p class="section-sub">Click any card to learn more about each mode.</p>
+
+        <div class="modes-grid">
+            <!-- ECB -->
+            <div class="mode-card" data-mode="ecb">
+                <div class="mode-header ecb">
+                    <span class="mode-badge badge-danger">Insecure</span>
+                    <h3>ECB</h3>
+                    <p>Electronic Codebook</p>
+                </div>
+                <div class="mode-body">
+                    <div class="mode-diagram">
+                        <code>P₁ → [AES_K] → C₁</code><br>
+                        <code>P₂ → [AES_K] → C₂</code><br>
+                        <code>P₃ → [AES_K] → C₃</code>
+                    </div>
+                    <p>Each block is encrypted independently with the same key. Identical plaintext blocks produce identical ciphertext blocks, leaking patterns.</p>
+                    <ul class="mode-props">
+                        <li><span class="prop-icon prop-yes">✓</span> Parallelizable (encrypt & decrypt)</li>
+                        <li><span class="prop-icon prop-yes">✓</span> No IV required</li>
+                        <li><span class="prop-icon prop-no">✗</span> Leaks plaintext patterns</li>
+                        <li><span class="prop-icon prop-no">✗</span> No diffusion across blocks</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- CBC -->
+            <div class="mode-card" data-mode="cbc">
+                <div class="mode-header cbc">
+                    <span class="mode-badge badge-warn">Legacy</span>
+                    <h3>CBC</h3>
+                    <p>Cipher Block Chaining</p>
+                </div>
+                <div class="mode-body">
+                    <div class="mode-diagram">
+                        <code>C₁ = AES_K(P₁ ⊕ IV)</code><br>
+                        <code>C₂ = AES_K(P₂ ⊕ C₁)</code><br>
+                        <code>C₃ = AES_K(P₃ ⊕ C₂)</code>
+                    </div>
+                    <p>Each plaintext block is XORed with the previous ciphertext block before encryption. Requires an unpredictable IV and padding.</p>
+                    <ul class="mode-props">
+                        <li><span class="prop-icon prop-yes">✓</span> Hides plaintext patterns</li>
+                        <li><span class="prop-icon prop-yes">✓</span> Decrypt is parallelizable</li>
+                        <li><span class="prop-icon prop-no">✗</span> Encrypt is sequential</li>
+                        <li><span class="prop-icon prop-no">✗</span> Vulnerable to padding oracle</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- CFB -->
+            <div class="mode-card" data-mode="cfb">
+                <div class="mode-header cfb">
+                    <span class="mode-badge badge-info">Stream</span>
+                    <h3>CFB</h3>
+                    <p>Cipher Feedback</p>
+                </div>
+                <div class="mode-body">
+                    <div class="mode-diagram">
+                        <code>C₁ = P₁ ⊕ AES_K(IV)</code><br>
+                        <code>C₂ = P₂ ⊕ AES_K(C₁)</code><br>
+                        <code>C₃ = P₃ ⊕ AES_K(C₂)</code>
+                    </div>
+                    <p>Turns AES into a self-synchronizing stream cipher. Uses only the encryption function for both directions. No padding needed.</p>
+                    <ul class="mode-props">
+                        <li><span class="prop-icon prop-yes">✓</span> No padding required</li>
+                        <li><span class="prop-icon prop-yes">✓</span> Decrypt is parallelizable</li>
+                        <li><span class="prop-icon prop-no">✗</span> Encrypt is sequential</li>
+                        <li><span class="prop-icon prop-no">✗</span> Error propagation (1 + fraction)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- OFB -->
+            <div class="mode-card" data-mode="ofb">
+                <div class="mode-header ofb">
+                    <span class="mode-badge badge-info">Stream</span>
+                    <h3>OFB</h3>
+                    <p>Output Feedback</p>
+                </div>
+                <div class="mode-body">
+                    <div class="mode-diagram">
+                        <code>O₁ = AES_K(IV);&ensp; C₁ = P₁ ⊕ O₁</code><br>
+                        <code>O₂ = AES_K(O₁); C₂ = P₂ ⊕ O₂</code><br>
+                        <code>O₃ = AES_K(O₂); C₃ = P₃ ⊕ O₃</code>
+                    </div>
+                    <p>Generates a keystream independent of plaintext. A single bit error in ciphertext affects only the corresponding plaintext bit.</p>
+                    <ul class="mode-props">
+                        <li><span class="prop-icon prop-yes">✓</span> No error propagation</li>
+                        <li><span class="prop-icon prop-yes">✓</span> No padding required</li>
+                        <li><span class="prop-icon prop-no">✗</span> Fully sequential</li>
+                        <li><span class="prop-icon prop-no">✗</span> Keystream must never repeat</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- CTR -->
+            <div class="mode-card" data-mode="ctr">
+                <div class="mode-header ctr">
+                    <span class="mode-badge badge-ok">Recommended</span>
+                    <h3>CTR</h3>
+                    <p>Counter Mode</p>
+                </div>
+                <div class="mode-body">
+                    <div class="mode-diagram">
+                        <code>C₁ = P₁ ⊕ AES_K(Nonce‖1)</code><br>
+                        <code>C₂ = P₂ ⊕ AES_K(Nonce‖2)</code><br>
+                        <code>C₃ = P₃ ⊕ AES_K(Nonce‖3)</code>
+                    </div>
+                    <p>Encrypts a counter value to produce a keystream. Fully parallelizable, random access, and no padding — an excellent building block.</p>
+                    <ul class="mode-props">
+                        <li><span class="prop-icon prop-yes">✓</span> Fully parallelizable</li>
+                        <li><span class="prop-icon prop-yes">✓</span> Random access to blocks</li>
+                        <li><span class="prop-icon prop-yes">✓</span> No padding required</li>
+                        <li><span class="prop-icon prop-no">✗</span> Nonce reuse is catastrophic</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- GCM -->
+            <div class="mode-card" data-mode="gcm">
+                <div class="mode-header gcm">
+                    <span class="mode-badge badge-ok">Best Practice</span>
+                    <h3>GCM</h3>
+                    <p>Galois/Counter Mode</p>
+                </div>
+                <div class="mode-body">
+                    <div class="mode-diagram">
+                        <code>CTR encryption + GHASH auth</code><br>
+                        <code>Provides AEAD: confidentiality</code><br>
+                        <code>+ integrity + authenticity</code>
+                    </div>
+                    <p>Combines CTR-mode encryption with Galois-field multiplication for authentication. The gold standard for authenticated encryption.</p>
+                    <ul class="mode-props">
+                        <li><span class="prop-icon prop-yes">✓</span> Authenticated encryption (AEAD)</li>
+                        <li><span class="prop-icon prop-yes">✓</span> Fully parallelizable</li>
+                        <li><span class="prop-icon prop-yes">✓</span> Hardware-accelerated (GCM-SIV)</li>
+                        <li><span class="prop-icon prop-no">✗</span> Nonce reuse breaks auth & conf.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ─── Comparison Table ─── -->
+<section id="comparison" class="section">
+    <div class="container">
+        <h2 class="section-title">Side-by-Side Comparison</h2>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>ECB</th>
+                        <th>CBC</th>
+                        <th>CFB</th>
+                        <th>OFB</th>
+                        <th>CTR</th>
+                        <th>GCM</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Confidentiality</strong></td>
+                        <td class="cell-bad">Weak</td>
+                        <td class="cell-ok">Good</td>
+                        <td class="cell-ok">Good</td>
+                        <td class="cell-ok">Good</td>
+                        <td class="cell-good">Strong</td>
+                        <td class="cell-good">Strong</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Integrity / Auth</strong></td>
+                        <td class="cell-bad">None</td>
+                        <td class="cell-bad">None</td>
+                        <td class="cell-bad">None</td>
+                        <td class="cell-bad">None</td>
+                        <td class="cell-bad">None</td>
+                        <td class="cell-good">Built-in</td>
+                    </tr>
+                    <tr>
+                        <td><strong>IV / Nonce</strong></td>
+                        <td>None</td>
+                        <td>Unpredictable IV</td>
+                        <td>Unpredictable IV</td>
+                        <td>Unique Nonce</td>
+                        <td>Unique Nonce</td>
+                        <td>Unique Nonce</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Padding</strong></td>
+                        <td>Required</td>
+                        <td>Required</td>
+                        <td>Not needed</td>
+                        <td>Not needed</td>
+                        <td>Not needed</td>
+                        <td>Not needed</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Encrypt Parallel</strong></td>
+                        <td class="cell-good">Yes</td>
+                        <td class="cell-bad">No</td>
+                        <td class="cell-bad">No</td>
+                        <td class="cell-bad">No</td>
+                        <td class="cell-good">Yes</td>
+                        <td class="cell-good">Yes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Decrypt Parallel</strong></td>
+                        <td class="cell-good">Yes</td>
+                        <td class="cell-good">Yes</td>
+                        <td class="cell-good">Yes</td>
+                        <td class="cell-bad">No</td>
+                        <td class="cell-good">Yes</td>
+                        <td class="cell-good">Yes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Random Access</strong></td>
+                        <td class="cell-good">Yes</td>
+                        <td class="cell-bad">No</td>
+                        <td class="cell-bad">No</td>
+                        <td class="cell-bad">No</td>
+                        <td class="cell-good">Yes</td>
+                        <td class="cell-good">Yes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Error Propagation</strong></td>
+                        <td>1 block</td>
+                        <td>2 blocks</td>
+                        <td>1+ blocks</td>
+                        <td>1 bit</td>
+                        <td>1 bit</td>
+                        <td>Full reject</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- ─── Performance ─── -->
+<section id="performance" class="section section-alt">
+    <div class="container">
+        <h2 class="section-title">Performance Analysis</h2>
+        <p class="section-sub">Relative throughput measured on a modern x86-64 CPU with AES-NI. Higher is better.</p>
+
+        <div class="chart-container">
+            <canvas id="perfChart"></canvas>
+        </div>
+
+        <div class="perf-details">
+            <div class="perf-card">
+                <h4>🚀 Parallelism Wins</h4>
+                <p>CTR and GCM can process multiple blocks simultaneously using AES-NI pipelining, achieving up to <strong>4–6 GB/s</strong> on a single core. ECB shares this property but lacks security.</p>
+            </div>
+            <div class="perf-card">
+                <h4>🔗 Sequential Bottleneck</h4>
+                <p>CBC, CFB, and OFB encryption must complete one block before starting the next, limiting throughput to <strong>~2–3 GB/s</strong> despite hardware acceleration.</p>
+            </div>
+            <div class="perf-card">
+                <h4>🛡️ Auth Overhead</h4>
+                <p>GCM adds a GHASH computation for authentication, costing roughly <strong>5–10%</strong> throughput compared to raw CTR. Hardware CLMUL instructions minimize this cost.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ─── Security ─── -->
+<section id="security" class="section">
+    <div class="container">
+        <h2 class="section-title">Security Analysis</h2>
+
+        <div class="security-grid">
+            <div class="vuln-card vuln-critical">
+                <div class="vuln-header">
+                    <span class="vuln-severity">CRITICAL</span>
+                    <h4>ECB Pattern Leakage</h4>
+                </div>
+                <p>Identical plaintext blocks always map to identical ciphertext blocks. This reveals structure in the plaintext — famously demonstrated with the "ECB Penguin" image.</p>
+                <div class="vuln-impact">
+                    <strong>Impact:</strong> Confidentiality completely broken for structured data.
+                </div>
+            </div>
+
+            <div class="vuln-card vuln-high">
+                <div class="vuln-header">
+                    <span class="vuln-severity">HIGH</span>
+                    <h4>CBC Padding Oracle</h4>
+                </div>
+                <p>If an attacker can distinguish valid from invalid padding, they can decrypt the entire message byte-by-byte. Attacks like POODLE and Lucky13 exploited this in TLS.</p>
+                <div class="vuln-impact">
+                    <strong>Impact:</strong> Full plaintext recovery without the key.
+                </div>
+            </div>
+
+            <div class="vuln-card vuln-high">
+                <div class="vuln-header">
+                    <span class="vuln-severity">HIGH</span>
+                    <h4>Nonce Reuse (CTR / GCM)</h4>
+                </div>
+                <p>Reusing a nonce with the same key produces the same keystream. XORing two ciphertexts yields the XOR of the two plaintexts, enabling cryptanalysis. In GCM, it also leaks the auth key.</p>
+                <div class="vuln-impact">
+                    <strong>Impact:</strong> Confidentiality loss; in GCM, authentication forgery.
+                </div>
+            </div>
+
+            <div class="vuln-card vuln-medium">
+                <div class="vuln-header">
+                    <span class="vuln-severity">MEDIUM</span>
+                    <h4>Bit-Flipping (CTR / OFB / CFB)</h4>
+                </div>
+                <p>Stream-cipher modes are malleable — flipping a ciphertext bit flips the corresponding plaintext bit. Without a MAC, an attacker can modify messages predictably.</p>
+                <div class="vuln-impact">
+                    <strong>Impact:</strong> Targeted plaintext modification without detection.
+                </div>
+            </div>
+
+            <div class="vuln-card vuln-medium">
+                <div class="vuln-header">
+                    <span class="vuln-severity">MEDIUM</span>
+                    <h4>Birthday Bound (64-bit modes)</h4>
+                </div>
+                <p>After encrypting 2<sup>32</sup> blocks (~68 GB) with a single key, block collisions become likely. GCM's 96-bit nonce limits it to 2<sup>32</sup> invocations per key.</p>
+                <div class="vuln-impact">
+                    <strong>Impact:</strong> Distinguishing attacks; key rotation required.
+                </div>
+            </div>
+
+            <div class="vuln-card vuln-low">
+                <div class="vuln-header">
+                    <span class="vuln-severity">LOW</span>
+                    <h4>Lack of Authentication</h4>
+                </div>
+                <p>ECB, CBC, CFB, OFB, and CTR provide confidentiality only. Without a separate MAC (e.g., HMAC), tampered ciphertexts are accepted silently.</p>
+                <div class="vuln-impact">
+                    <strong>Impact:</strong> No tamper detection; must pair with HMAC.
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ─── Recommendations ─── -->
+<section id="recommendations" class="section section-alt">
+    <div class="container">
+        <h2 class="section-title">Recommendations</h2>
+        <div class="rec-grid">
+            <div class="rec-card rec-do">
+                <h4>✅ Do</h4>
+                <ul>
+                    <li>Use <strong>AES-256-GCM</strong> as your default choice</li>
+                    <li>Generate nonces with a CSPRNG or use a counter</li>
+                    <li>Rotate keys before the birthday bound (~2<sup>32</sup> messages)</li>
+                    <li>Use constant-time comparison for authentication tags</li>
+                    <li>Consider <strong>AES-GCM-SIV</strong> if nonce misuse is a risk</li>
+                </ul>
+            </div>
+            <div class="rec-card rec-dont">
+                <h4>❌ Don't</h4>
+                <ul>
+                    <li>Never use <strong>ECB</strong> for anything beyond single-block values</li>
+                    <li>Avoid CBC in new designs — padding oracles are hard to prevent</li>
+                    <li>Never reuse a nonce with the same key in CTR or GCM</li>
+                    <li>Don't encrypt without authenticating — always use AEAD or add HMAC</li>
+                    <li>Don't implement your own crypto primitives</li>
+                </ul>
+            </div>
+            <div class="rec-card rec-use">
+                <h4>📋 Use-Case Guide</h4>
+                <ul>
+                    <li><strong>Network traffic (TLS):</strong> AES-GCM</li>
+                    <li><strong>Disk encryption:</strong> AES-XTS</li>
+                    <li><strong>Database fields:</strong> AES-GCM / AES-GCM-SIV</li>
+                    <li><strong>File encryption:</strong> AES-GCM with chunking</li>
+                    <li><strong>Legacy systems:</strong> AES-CBC + HMAC (Encrypt-then-MAC)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ─── Interactive Demo ─── -->
+<section id="demo" class="section">
+    <div class="container">
+        <h2 class="section-title">🔐 Live Encrypt & Decrypt Demo</h2>
+        <p class="section-sub">Enter plaintext below and watch each AES mode encrypt and decrypt it in real time with performance timing.</p>
+
+        <div class="demo-input-area">
+            <label for="plaintext-input">Enter Plaintext:</label>
+            <textarea id="plaintext-input" rows="3" placeholder="Type your message here... e.g. Hello, AES Encryption!">Hello, AES Encryption! This is a comparative demo of all modes.</textarea>
+
+            <div class="demo-options">
+                <div class="option-group">
+                    <label>🔑 Key Size:</label>
+                    <div class="radio-group" id="key-size-group">
+                        <button class="radio-btn" data-value="128" onclick="selectKeySize(this)">128-bit</button>
+                        <button class="radio-btn active" data-value="256" onclick="selectKeySize(this)">256-bit</button>
+                    </div>
+                </div>
+                <div class="option-group">
+                    <label>📦 Block Size:</label>
+                    <div class="block-size-display">
+                        <span class="fixed-badge">128-bit (Fixed)</span>
+                        <span class="block-info">AES always uses 128-bit blocks</span>
+                    </div>
+                </div>
+                <div class="option-group">
+                    <label>🔄 Rounds:</label>
+                    <div class="rounds-display" id="rounds-display">
+                        <span class="rounds-badge">14 rounds</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-actions">
+                <button id="run-demo-btn" onclick="runFullDemo()">🚀 Encrypt & Decrypt All Modes</button>
+                <span id="demo-status" class="demo-status"></span>
+            </div>
+        </div>
+
+        <div id="demo-results" class="demo-results">
+            <!-- Results will be injected here -->
+        </div>
+
+        <!-- Timing Comparison Bar -->
+        <div id="timing-section" class="timing-section" style="display:none;">
+            <h3>⏱️ Performance Timing Comparison</h3>
+            <div id="timing-bars"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ─── Footer ─── -->
+<footer class="footer">
+    <div class="container">
+        <p>Comparative Performance & Security Analysis of AES Modes of Operation</p>
+        <p class="footer-sub">Educational resource · Based on NIST SP 800-38A/D · Not a substitute for professional cryptographic review.</p>
+    </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
